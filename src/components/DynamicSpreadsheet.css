@@ -112,3 +112,9 @@
 .error {
   color: #ff4444;
 }
+
+.spreadsheet-table .row-header.highlighted,
+.spreadsheet-table .col-header.highlighted {
+  background-color: #f1ebff;
+  color: #8b3dff;
+}

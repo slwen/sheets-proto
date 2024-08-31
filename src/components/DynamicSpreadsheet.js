@@ -190,6 +190,24 @@ const DynamicSpreadsheet = () => {
   const [inputWidth, setInputWidth] = useState(0);
   const measureRef = useRef(null);
 
+  useEffect(() => {
+    // Seed the spreadsheet with some dummy data
+    const dummyData = {
+      'A1': { value: 'Name' },
+      'B1': { value: 'Score' },
+      'C1': { value: 'Team' },
+      'A2': { value: 'John' },
+      'B2': { value: '30' },
+      'C2': { value: 'Red' },
+      'A3': { value: 'Alice' },
+      'B3': { value: '25' },
+      'C3': { value: 'Blue' },
+      'A4': { value: 'Total' },
+      'B4': { formula: '=SUM(B2:B3)' }
+    };
+    setData(dummyData);
+  }, []);
+
   const getCellValue = useCallback((cellId) => {
     const cellData = data[cellId];
     if (!cellData) {
@@ -198,7 +216,8 @@ const DynamicSpreadsheet = () => {
     if (cellData.formula) {
       return parseFormula(cellData.formula, getCellValue);
     }
-    return cellData.value !== '' ? parseFloat(cellData.value) : cellData.value;
+    // If it's a number, return it as a number, otherwise return as a string
+    return isNaN(cellData.value) ? cellData.value : parseFloat(cellData.value);
   }, [data]);
 
   const updateInputWidth = (text) => {
@@ -254,12 +273,15 @@ const DynamicSpreadsheet = () => {
     );
   };
 
-  const renderRow = (rowIndex) => (
-    <tr key={rowIndex}>
-      <td className="row-header">{rowIndex + 1}</td>
-      {[...Array(10)].map((_, colIndex) => renderCell(rowIndex, colIndex))}
-    </tr>
-  );
+  const renderRow = (rowIndex) => {
+    const isActiveRow = activeCell && parseInt(activeCell.match(/\d+/)[0]) === rowIndex + 1;
+    return (
+      <tr key={rowIndex}>
+        <td className={`row-header ${isActiveRow ? 'highlighted' : ''}`}>{rowIndex + 1}</td>
+        {[...Array(10)].map((_, colIndex) => renderCell(rowIndex, colIndex))}
+      </tr>
+    );
+  };
 
   return (
     <div className="spreadsheet-container">
@@ -267,9 +289,17 @@ const DynamicSpreadsheet = () => {
         <thead>
           <tr>
             <th></th>
-            {[...Array(10)].map((_, index) => (
-              <th key={index}>{colIndexToLetter(index)}</th>
-            ))}
+            {[...Array(10)].map((_, index) => {
+              const isActiveCol = activeCell && activeCell[0] === colIndexToLetter(index);
+              return (
+                <th 
+                  key={index} 
+                  className={`col-header ${isActiveCol ? 'highlighted' : ''}`}
+                >
+                  {colIndexToLetter(index)}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
