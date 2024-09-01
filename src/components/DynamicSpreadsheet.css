@@ -118,3 +118,78 @@
   background-color: #f1ebff;
   color: #8b3dff;
 }
+
+.formula-editor {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 2px 4px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.formula-block {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 1px;
+  border-radius: 2px;
+  font-family: monospace;
+  position: relative;
+}
+
+.formula-block input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 1px 2px;
+  margin: 0;
+  min-width: 8px;
+  color: inherit;
+}
+
+.formula-block .measure-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  height: 0;
+  white-space: pre;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 1px 2px;
+}
+
+/* Formula name block styles (e.g., SUM, SUMIF) */
+.formula-block.formula-name {
+  color: #0000FF; /* Blue text */
+  background-color: #f0f0f0; /* Light grey background */
+}
+
+/* Range block styles */
+.formula-block.range {
+  background-color: #E6E6FA; /* Light pastel purple */
+  color: #4B0082; /* Dark purple */
+}
+
+/* String block styles */
+.formula-block.string {
+  background-color: #E0FFE0; /* Light pastel green */
+  color: #006400; /* Dark green */
+}
+
+/* Other block styles */
+.formula-block.number, 
+.formula-block.operator, 
+.formula-block.separator,
+.formula-block.text {
+  background-color: #f0f0f0; /* Light grey background */
+}
+
+.formula-block.number { color: #800080; }
+.formula-block.operator { color: #FFA500; }
+.formula-block.separator { color: #000000; }
+.formula-block.text { color: #000000; }
+
+/* ... rest of the CSS ... */

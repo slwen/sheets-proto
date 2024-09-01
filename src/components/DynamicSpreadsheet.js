@@ -162,7 +162,7 @@ const evaluateArithmeticExpression = (expression) => {
   return output[0];
 };
 
-const Cell = ({ cellId, isActive, cellData, getCellValue, handleCellChange, handleKeyDown, inputWidth, setActiveCell }) => {
+const Cell = ({ cellId, isActive, cellData, getCellValue, handleCellChange, handleKeyDown, setActiveCell }) => {
   return (
     <td
       className={`cell ${isActive ? 'active' : ''}`}
@@ -170,24 +170,165 @@ const Cell = ({ cellId, isActive, cellData, getCellValue, handleCellChange, hand
     >
       <span>{getCellValue(cellId)}</span>
       {isActive && (
-        <div className="cell-input-overlay" style={{ width: `${inputWidth}px` }}>
-          <input
-            value={cellData.formula || cellData.value || ''}
-            onChange={(e) => handleCellChange(cellId, e.target.value)}
-            onBlur={() => setActiveCell(null)}
-            onKeyDown={(e) => handleKeyDown(e, cellId)}
-            autoFocus
-          />
+        <div className="cell-input-overlay">
+          {cellData.formula ? (
+            <FormulaEditor
+              formula={cellData.formula}
+              onChange={(newFormula) => handleCellChange(cellId, newFormula)}
+            />
+          ) : (
+            <input
+              value={cellData.value || ''}
+              onChange={(e) => handleCellChange(cellId, e.target.value)}
+              onBlur={() => setActiveCell(null)}
+              onKeyDown={(e) => handleKeyDown(e, cellId)}
+              autoFocus
+            />
+          )}
         </div>
       )}
     </td>
   );
 };
 
+const FormulaEditor = ({ formula, onChange }) => {
+  const [blocks, setBlocks] = useState([]);
+  const [activeBlockIndex, setActiveBlockIndex] = useState(-1);
+
+  useEffect(() => {
+    setBlocks(parseFormulaIntoBlocks(formula));
+  }, [formula]);
+
+  const parseFormulaIntoBlocks = (formula) => {
+    // Regex to match different parts of the formula, including formula names
+    const regex = /=|[A-Z]+(?:\w+)?(?=\()|[A-Z]+\d*(?::[A-Z]+\d*)?|\d+(?:\.\d+)?|"[^"]*"|'[^']*'|[,()]|[<>=]+|[^\s]+/g;
+    const matches = formula.match(regex) || [];
+    return matches.map((match, index) => ({
+      id: index,
+      value: match,
+      type: getBlockType(match),
+    }));
+  };
+
+  const getBlockType = (value) => {
+    if (value === '=') return 'operator';
+    if (/^[A-Z]+(?:\w+)?$/.test(value)) return 'formula-name'; // Match formula names like SUM, SUMIF
+    if (/^[A-Z]+\d*(?::[A-Z]+\d*)?$/.test(value)) return 'range';
+    if (/^\d+(?:\.\d+)?$/.test(value)) return 'number';
+    if (/^"[^"]*"$/.test(value) || /^'[^']*'$/.test(value)) return 'string';
+    if (/^[,()]$/.test(value)) return 'separator';
+    if (/^[<>=]+$/.test(value)) return 'operator';
+    return 'text';
+  };
+
+  const handleBlockChange = (index, newValue) => {
+    const newBlocks = [...blocks];
+    newBlocks[index] = { ...newBlocks[index], value: newValue };
+    
+    // Remove empty blocks, except the last one
+    const filteredBlocks = newBlocks.filter((block, i) => block.value !== '' || i === newBlocks.length - 1);
+    
+    setBlocks(filteredBlocks);
+    onChange(filteredBlocks.map(block => block.value).join(''));
+    
+    // Adjust activeBlockIndex if blocks were removed
+    if (filteredBlocks.length < newBlocks.length) {
+      setActiveBlockIndex(Math.min(index, filteredBlocks.length - 1));
+    }
+  };
+
+  const handleBlockDelete = (index) => {
+    if (blocks.length > 1) {
+      const newBlocks = blocks.filter((_, i) => i !== index);
+      setBlocks(newBlocks);
+      onChange(newBlocks.map(block => block.value).join(''));
+      setActiveBlockIndex(Math.max(0, index - 1));
+    } else {
+      // If it's the last block, clear it instead of deleting
+      handleBlockChange(index, '');
+    }
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'ArrowLeft' && e.target.selectionStart === 0) {
+      e.preventDefault();
+      setActiveBlockIndex(Math.max(0, index - 1));
+    } else if (e.key === 'ArrowRight' && e.target.selectionEnd === blocks[index].value.length) {
+      e.preventDefault();
+      setActiveBlockIndex(Math.min(blocks.length - 1, index + 1));
+    }
+  };
+
+  return (
+    <div className="formula-editor">
+      {blocks.map((block, index) => (
+        <FormulaBlock
+          key={block.id}
+          value={block.value}
+          type={block.type}
+          isActive={index === activeBlockIndex}
+          onChange={(newValue) => handleBlockChange(index, newValue)}
+          onDelete={() => handleBlockDelete(index)}
+          onFocus={() => setActiveBlockIndex(index)}
+          onKeyDown={(e) => handleKeyDown(e, index)}
+        />
+      ))}
+    </div>
+  );
+};
+
+const FormulaBlock = ({ value, type, isActive, onChange, onDelete, onFocus, onKeyDown }) => {
+  const inputRef = useRef(null);
+  const measureRef = useRef(null);
+  const [inputWidth, setInputWidth] = useState(0);
+
+  useEffect(() => {
+    if (isActive && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (measureRef.current) {
+      const width = measureRef.current.offsetWidth;
+      setInputWidth(Math.max(width + 2, 8)); // Reduced padding and minimum width
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    onChange(e.target.value);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Backspace' && e.target.value === '') {
+      onDelete();
+    } else {
+      onKeyDown(e);
+    }
+  };
+
+  const blockClass = `formula-block ${type}`;
+
+  return (
+    <span className={blockClass}>
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onFocus={onFocus}
+        style={{ width: `${inputWidth}px` }}
+      />
+      <span ref={measureRef} className="measure-text" aria-hidden="true">
+        {value || 'W'}
+      </span>
+    </span>
+  );
+};
+
 const DynamicSpreadsheet = () => {
   const [data, setData] = useState({});
   const [activeCell, setActiveCell] = useState(null);
-  const [inputWidth, setInputWidth] = useState(0);
   const measureRef = useRef(null);
 
   useEffect(() => {
@@ -220,20 +361,11 @@ const DynamicSpreadsheet = () => {
     return isNaN(cellData.value) ? cellData.value : parseFloat(cellData.value);
   }, [data]);
 
-  const updateInputWidth = (text) => {
-    if (measureRef.current) {
-      measureRef.current.textContent = text;
-      const width = measureRef.current.offsetWidth;
-      setInputWidth(Math.max(width + 10, 80)); // Add some padding and set a minimum width
-    }
-  };
-
   const handleCellChange = (cellId, value) => {
     setData(prevData => ({
       ...prevData,
       [cellId]: { value, formula: value.startsWith('=') ? value : null }
     }));
-    updateInputWidth(value);
   };
 
   const handleKeyDown = (event, cellId) => {
@@ -245,13 +377,6 @@ const DynamicSpreadsheet = () => {
       setActiveCell(nextCellId);
     }
   };
-
-  useEffect(() => {
-    if (activeCell) {
-      const cellData = data[activeCell] || {};
-      updateInputWidth(cellData.formula || cellData.value || '');
-    }
-  }, [activeCell, data]);
 
   const renderCell = (rowIndex, colIndex) => {
     const cellId = `${colIndexToLetter(colIndex)}${rowIndex + 1}`;
@@ -267,7 +392,6 @@ const DynamicSpreadsheet = () => {
         getCellValue={getCellValue}
         handleCellChange={handleCellChange}
         handleKeyDown={handleKeyDown}
-        inputWidth={inputWidth}
         setActiveCell={setActiveCell}
       />
     );
