@@ -162,59 +162,45 @@ const evaluateArithmeticExpression = (expression) => {
   return output[0];
 };
 
-const Cell = ({ cellId, isActive, cellData, getCellValue, handleCellChange, handleKeyDown, setActiveCell }) => {
-  const handleCommit = () => {
-    const [col, row] = cellId.match(/([A-Z])(\d+)/).slice(1);
-    const nextRow = parseInt(row) + 1;
-    const nextCellId = `${col}${nextRow}`;
-    setActiveCell(nextCellId);
-  };
-
-  const handleNavigate = (direction) => {
-    const [col, row] = cellId.match(/([A-Z])(\d+)/).slice(1);
-    let nextRow;
-    if (direction === 'up') {
-      nextRow = Math.max(1, parseInt(row) - 1);
-    } else {
-      nextRow = parseInt(row) + 1;
-    }
-    const nextCellId = `${col}${nextRow}`;
-    setActiveCell(nextCellId);
-  };
-
+const Cell = ({ cellId, isSelected, isEditing, cellData, getCellValue, handleCellChange, handleKeyDown, onCellClick }) => {
   return (
     <td
-      className={`cell ${isActive ? 'active' : ''}`}
-      onClick={() => setActiveCell(cellId)}
+      className={`cell ${isSelected ? 'selected' : ''} ${isEditing ? 'editing' : ''}`}
+      onClick={() => onCellClick(cellId)}
     >
       <span>{getCellValue(cellId)}</span>
-      {isActive && (
+      {isEditing && (
         <div className="cell-input-overlay">
           {cellData.formula ? (
             <FormulaEditor
               formula={cellData.formula}
               onChange={(newFormula) => handleCellChange(cellId, newFormula)}
-              onCommit={handleCommit}
-              onNavigate={handleNavigate}
+              onCommit={() => onCellClick(null)}
+              onNavigate={(direction) => {
+                const [col, row] = cellId.match(/([A-Z])(\d+)/).slice(1);
+                const nextRow = parseInt(row) + (direction === 'down' ? 1 : -1);
+                const nextCellId = `${col}${nextRow}`;
+                onCellClick(nextCellId);
+              }}
             />
           ) : (
             <input
               value={cellData.value || ''}
               onChange={(e) => handleCellChange(cellId, e.target.value)}
-              onBlur={() => setActiveCell(null)}
+              onBlur={() => onCellClick(null)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === 'Return') {
                   e.preventDefault();
-                  handleCommit();
-                  handleNavigate('down');
+                  onCellClick(null);
+                  onCellClick(`${cellId[0]}${parseInt(cellId.slice(1)) + 1}`);
                 } else if (e.key === 'ArrowUp') {
                   e.preventDefault();
-                  handleCommit();
-                  handleNavigate('up');
+                  onCellClick(null);
+                  onCellClick(`${cellId[0]}${Math.max(1, parseInt(cellId.slice(1)) - 1)}`);
                 } else if (e.key === 'ArrowDown') {
                   e.preventDefault();
-                  handleCommit();
-                  handleNavigate('down');
+                  onCellClick(null);
+                  onCellClick(`${cellId[0]}${parseInt(cellId.slice(1)) + 1}`);
                 } else {
                   handleKeyDown(e, cellId);
                 }
@@ -397,9 +383,8 @@ const FormulaBlock = React.forwardRef(({ value, type, onChange, onKeyDown, onFoc
   );
 });
 
-const DynamicSpreadsheet = () => {
+const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
   const [data, setData] = useState({});
-  const [activeCell, setActiveCell] = useState(null);
   const measureRef = useRef(null);
 
   useEffect(() => {
@@ -445,31 +430,33 @@ const DynamicSpreadsheet = () => {
       const [col, row] = cellId.match(/([A-Z])(\d+)/).slice(1);
       const nextRow = parseInt(row) + 1;
       const nextCellId = `${col}${nextRow}`;
-      setActiveCell(nextCellId);
+      onCellClick(nextCellId);
     }
   };
 
   const renderCell = (rowIndex, colIndex) => {
     const cellId = `${colIndexToLetter(colIndex)}${rowIndex + 1}`;
-    const isActive = activeCell === cellId;
+    const isSelected = selectedCell === cellId;
+    const isEditing = editingCell === cellId;
     const cellData = data[cellId] || {};
 
     return (
       <Cell
         key={cellId}
         cellId={cellId}
-        isActive={isActive}
+        isSelected={isSelected}
+        isEditing={isEditing}
         cellData={cellData}
         getCellValue={getCellValue}
         handleCellChange={handleCellChange}
         handleKeyDown={handleKeyDown}
-        setActiveCell={setActiveCell}
+        onCellClick={onCellClick}
       />
     );
   };
 
   const renderRow = (rowIndex) => {
-    const isActiveRow = activeCell && parseInt(activeCell.match(/\d+/)[0]) === rowIndex + 1;
+    const isActiveRow = selectedCell && parseInt(selectedCell.match(/\d+/)[0]) === rowIndex + 1;
     return (
       <tr key={rowIndex}>
         <td className={`row-header ${isActiveRow ? 'highlighted' : ''}`}>{rowIndex + 1}</td>
@@ -485,7 +472,7 @@ const DynamicSpreadsheet = () => {
           <tr>
             <th></th>
             {[...Array(10)].map((_, index) => {
-              const isActiveCol = activeCell && activeCell[0] === colIndexToLetter(index);
+              const isActiveCol = selectedCell && selectedCell[0] === colIndexToLetter(index);
               return (
                 <th 
                   key={index} 
