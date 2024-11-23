@@ -28,23 +28,7 @@ const Cell = ({ cellId, isSelected, isEditing, cellData, getCellValue, handleCel
               value={cellData.value || ''}
               onChange={(e) => handleCellChange(cellId, e.target.value)}
               onBlur={() => onCellClick(null)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === 'Return') {
-                  e.preventDefault();
-                  onCellClick(null);
-                  onCellClick(`${cellId[0]}${parseInt(cellId.slice(1)) + 1}`);
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  onCellClick(null);
-                  onCellClick(`${cellId[0]}${Math.max(1, parseInt(cellId.slice(1)) - 1)}`);
-                } else if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  onCellClick(null);
-                  onCellClick(`${cellId[0]}${parseInt(cellId.slice(1)) + 1}`);
-                } else {
-                  handleKeyDown(e, cellId);
-                }
-              }}
+              onKeyDown={(e) => handleKeyDown(e, cellId)}
               autoFocus
             />
           )}
@@ -223,6 +207,81 @@ const FormulaBlock = React.forwardRef(({ value, type, onChange, onKeyDown, onFoc
   );
 });
 
+const FormulaBar = ({ selectedCell, cellData, onFormulaChange, onNavigate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleKeyDown = (e) => {
+    switch (e.key) {
+      case 'Enter':
+      case 'Return':
+        e.preventDefault();
+        setIsEditing(false);
+        onNavigate('down');
+        break;
+      case 'Tab':
+        e.preventDefault();
+        setIsEditing(false);
+        onNavigate('right');
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsEditing(false);
+        break;
+      case 'ArrowUp':
+        if (!isEditing) {
+          e.preventDefault();
+          onNavigate('up');
+        }
+        break;
+      case 'ArrowDown':
+        if (!isEditing) {
+          e.preventDefault();
+          onNavigate('down');
+        }
+        break;
+      case 'ArrowLeft':
+        if (!isEditing && e.target.selectionStart === 0) {
+          e.preventDefault();
+          onNavigate('left');
+        }
+        break;
+      case 'ArrowRight':
+        if (!isEditing && e.target.selectionStart === e.target.value.length) {
+          e.preventDefault();
+          onNavigate('right');
+        }
+        break;
+    }
+  };
+
+  return (
+    <div className="formula-bar">
+      <div className="formula-label">f(x)</div>
+      <div className="formula-editor-container">
+        {cellData?.formula ? (
+          <FormulaEditor
+            formula={cellData.formula}
+            onChange={onFormulaChange}
+            onCommit={() => setIsEditing(false)}
+            onNavigate={onNavigate}
+            onKeyDown={handleKeyDown}
+          />
+        ) : (
+          <input
+            type="text"
+            value={cellData?.value || ''}
+            onChange={(e) => onFormulaChange(e.target.value)}
+            onFocus={() => setIsEditing(true)}
+            onBlur={() => setIsEditing(false)}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter a value or formula"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
 const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
   const [data, setData] = useState({});
   const measureRef = useRef(null);
@@ -274,6 +333,35 @@ const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
     }
   };
 
+  const handleNavigation = (direction) => {
+    if (!selectedCell) return;
+    
+    const [col, row] = selectedCell.match(/([A-Z])(\d+)/).slice(1);
+    const colIndex = col.charCodeAt(0) - 65;
+    const rowIndex = parseInt(row) - 1;
+    
+    let nextCol = colIndex;
+    let nextRow = rowIndex;
+    
+    switch (direction) {
+      case 'up':
+        nextRow = Math.max(0, rowIndex - 1);
+        break;
+      case 'down':
+        nextRow = Math.min(19, rowIndex + 1); // Assuming 20 rows
+        break;
+      case 'left':
+        nextCol = Math.max(0, colIndex - 1);
+        break;
+      case 'right':
+        nextCol = Math.min(9, colIndex + 1); // Assuming 10 columns
+        break;
+    }
+    
+    const nextCellId = `${String.fromCharCode(65 + nextCol)}${nextRow + 1}`;
+    onCellClick(nextCellId);
+  };
+
   const renderCell = (rowIndex, colIndex) => {
     const cellId = `${colIndexToLetter(colIndex)}${rowIndex + 1}`;
     const isSelected = selectedCell === cellId;
@@ -307,6 +395,16 @@ const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
 
   return (
     <div className="spreadsheet-container">
+      <FormulaBar
+        selectedCell={selectedCell}
+        cellData={selectedCell ? data[selectedCell] : null}
+        onFormulaChange={(newValue) => {
+          if (selectedCell) {
+            handleCellChange(selectedCell, newValue);
+          }
+        }}
+        onNavigate={handleNavigation}
+      />
       <table className="spreadsheet-table">
         <thead>
           <tr>
@@ -332,5 +430,128 @@ const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
     </div>
   );
 };
+
+const formulaBarStyles = `
+.formula-bar {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  padding: 0;
+}
+
+.formula-label {
+  font-size: 12px;
+  color: #5f6368;
+  padding: 0 8px;
+  border-right: 1px solid #e0e0e0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.formula-editor-container {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: white;
+}
+
+.formula-editor-container input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  font-family: 'Roboto Mono', monospace;
+  background: transparent;
+}
+
+.formula-editor-container .formula-editor {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.formula-block {
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.formula-block input {
+  height: 18px;
+  padding: 0 2px;
+}
+`;
+
+const formulaEditorStyles = `
+.formula-block {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 1px;
+  position: relative;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Operator styles (=, +, -, *, /, etc.) */
+.formula-block.operator {
+  color: #666666;
+}
+
+/* Function name styles (SUM, AVERAGE, etc.) */
+.formula-block.formula-name {
+  color: #2D7FF9;
+}
+
+/* Cell reference and range styles */
+.formula-block.range {
+  color: #137333;
+  background-color: #E6F4EA;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* Number styles */
+.formula-block.number {
+  color: #1A73E8;
+}
+
+/* String styles */
+.formula-block.string {
+  color: #188038;
+}
+
+/* Separator styles (parentheses, commas) */
+.formula-block.separator {
+  color: #666666;
+}
+
+.formula-block input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+}
+
+.formula-block input:focus {
+  background: rgba(27, 115, 232, 0.1);
+  border-radius: 2px;
+}
+`;
+
+// Add the styles to the document
+const styleSheet = document.createElement("style");
+styleSheet.innerText = formulaBarStyles + formulaEditorStyles;
+document.head.appendChild(styleSheet);
 
 export default DynamicSpreadsheet;

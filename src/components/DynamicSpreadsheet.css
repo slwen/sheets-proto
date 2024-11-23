@@ -7,6 +7,10 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   background-color: white;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
 }
 
 .spreadsheet-table {
@@ -198,5 +202,44 @@
 .formula-block.operator { color: #FFA500; }
 .formula-block.separator { color: #000000; }
 .formula-block.text { color: #000000; }
+
+.formula-bar {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 8px;
+  background: white;
+}
+
+.formula-label {
+  font-size: 13px;
+  color: #666;
+  padding: 0 8px;
+  border-right: 1px solid #e0e0e0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.formula-editor-container {
+  flex: 1;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+}
+
+.formula-editor-container input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.formula-editor-container .formula-editor {
+  width: 100%;
+  padding: 4px 0;
+}
 
 /* ... rest of the CSS ... */
