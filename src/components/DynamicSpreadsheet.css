@@ -3,6 +3,10 @@
   --font-monospace: 'Monaco', 'Roboto Mono', monospace;
 }
 
+body {
+  background-color: #f0f1f5;
+}
+
 /* Container */
 .spreadsheet-container {
   width: fit-content;

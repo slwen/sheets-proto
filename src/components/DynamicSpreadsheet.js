@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useImperativeHandle } from 'react';
 import { colIndexToLetter, parseFormula } from '../utils';
 import { ReactComponent as FormulaIcon } from '../assets/formula-icon.svg';
+import { ReactComponent as SelectAllIcon } from '../assets/select-all-icon.svg';
 import './DynamicSpreadsheet.css';
 
 const Cell = ({ cellId, isSelected, isEditing, cellData, getCellValue, handleCellChange, handleKeyDown, onCellClick }) => {
@@ -277,6 +278,7 @@ const FormulaBar = ({ selectedCell, cellData, onFormulaChange, onNavigate }) => 
             onFocus={() => setIsEditing(true)}
             onBlur={() => setIsEditing(false)}
             disabled={!selectedCell}
+            title={!selectedCell ? "Select a cell to enter a formula" : ""}
             placeholder={selectedCell && isEditing ? "Enter a value or formula" : ""}
           />
         )}
@@ -411,7 +413,7 @@ const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
       <table className="spreadsheet-table">
         <thead>
           <tr>
-            <th></th>
+            <th><SelectAllIcon width="12" height="12" /></th>
             {[...Array(10)].map((_, index) => {
               const isActiveCol = selectedCell && selectedCell[0] === colIndexToLetter(index);
               return (
