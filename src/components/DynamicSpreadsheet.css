@@ -5,6 +5,8 @@
 
 body {
   background-color: #f0f1f5;
+  font-size: 14px;
+  font-family: var(--font-primary);
 }
 
 /* Container */

@@ -184,7 +184,7 @@ const FormulaBlock = React.forwardRef(({ value, type, onChange, onKeyDown, onFoc
   useEffect(() => {
     if (measureRef.current) {
       const width = measureRef.current.offsetWidth;
-      setInputWidth(Math.max(width - 4, 1));
+      setInputWidth(Math.max(width - 3, 1));
     }
   }, [value]);
 
