@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useImperativeHandle } from 'react';
 import { colIndexToLetter, parseFormula } from '../utils';
+import { ReactComponent as FormulaIcon } from '../assets/formula-icon.svg';
 import './DynamicSpreadsheet.css';
 
 const Cell = ({ cellId, isSelected, isEditing, cellData, getCellValue, handleCellChange, handleKeyDown, onCellClick }) => {
@@ -128,8 +129,8 @@ const FormulaEditor = ({ formula, onChange, onCommit, onNavigate }) => {
 
   const getBlockType = (value) => {
     if (value === '=') return 'operator';
-    if (/^[A-Z]+(?:\w+)?$/.test(value)) return 'formula-name'; // Match formula names like SUM, SUMIF
-    if (/^[A-Z]+\d*(?::[A-Z]+\d*)?$/.test(value)) return 'range';
+    if (/^[A-Z]+(?:\w+)?$/.test(value) && /[A-Z]{2,}/.test(value)) return 'formula-name'; // Function names like SUM, AVERAGE
+    if (/^[A-Z]+\d+(?::[A-Z]+\d+)?$/.test(value)) return 'range';  // Cell references like A1, B2, or ranges like A1:B2
     if (/^\d+(?:\.\d+)?$/.test(value)) return 'number';
     if (/^"[^"]*"$/.test(value) || /^'[^']*'$/.test(value)) return 'string';
     if (/^[,()]$/.test(value)) return 'separator';
@@ -182,7 +183,7 @@ const FormulaBlock = React.forwardRef(({ value, type, onChange, onKeyDown, onFoc
   useEffect(() => {
     if (measureRef.current) {
       const width = measureRef.current.offsetWidth;
-      setInputWidth(Math.max(width + 2, 8));
+      setInputWidth(Math.max(width - 4, 1));
     }
   }, [value]);
 
@@ -256,7 +257,9 @@ const FormulaBar = ({ selectedCell, cellData, onFormulaChange, onNavigate }) => 
 
   return (
     <div className="formula-bar">
-      <div className="formula-label">f(x)</div>
+      <div className="formula-label">
+        <FormulaIcon width="24" height="24" />
+      </div>
       <div className="formula-editor-container">
         {cellData?.formula ? (
           <FormulaEditor
@@ -273,8 +276,8 @@ const FormulaBar = ({ selectedCell, cellData, onFormulaChange, onNavigate }) => 
             onChange={(e) => onFormulaChange(e.target.value)}
             onFocus={() => setIsEditing(true)}
             onBlur={() => setIsEditing(false)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter a value or formula"
+            disabled={!selectedCell}
+            placeholder={selectedCell && isEditing ? "Enter a value or formula" : ""}
           />
         )}
       </div>
@@ -430,128 +433,5 @@ const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
     </div>
   );
 };
-
-const formulaBarStyles = `
-.formula-bar {
-  display: flex;
-  align-items: center;
-  height: 22px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f8f9fa;
-  padding: 0;
-}
-
-.formula-label {
-  font-size: 12px;
-  color: #5f6368;
-  padding: 0 8px;
-  border-right: 1px solid #e0e0e0;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-}
-
-.formula-editor-container {
-  flex: 1;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-  background: white;
-}
-
-.formula-editor-container input {
-  width: 100%;
-  height: 100%;
-  border: none;
-  outline: none;
-  font-size: 13px;
-  font-family: 'Roboto Mono', monospace;
-  background: transparent;
-}
-
-.formula-editor-container .formula-editor {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.formula-block {
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-}
-
-.formula-block input {
-  height: 18px;
-  padding: 0 2px;
-}
-`;
-
-const formulaEditorStyles = `
-.formula-block {
-  display: inline-flex;
-  align-items: center;
-  margin: 0 1px;
-  position: relative;
-  font-family: 'Roboto Mono', monospace;
-}
-
-/* Operator styles (=, +, -, *, /, etc.) */
-.formula-block.operator {
-  color: #666666;
-}
-
-/* Function name styles (SUM, AVERAGE, etc.) */
-.formula-block.formula-name {
-  color: #2D7FF9;
-}
-
-/* Cell reference and range styles */
-.formula-block.range {
-  color: #137333;
-  background-color: #E6F4EA;
-  border-radius: 2px;
-  padding: 0 1px;
-}
-
-/* Number styles */
-.formula-block.number {
-  color: #1A73E8;
-}
-
-/* String styles */
-.formula-block.string {
-  color: #188038;
-}
-
-/* Separator styles (parentheses, commas) */
-.formula-block.separator {
-  color: #666666;
-}
-
-.formula-block input {
-  background: transparent;
-  border: none;
-  outline: none;
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
-  padding: 0;
-  margin: 0;
-}
-
-.formula-block input:focus {
-  background: rgba(27, 115, 232, 0.1);
-  border-radius: 2px;
-}
-`;
-
-// Add the styles to the document
-const styleSheet = document.createElement("style");
-styleSheet.innerText = formulaBarStyles + formulaEditorStyles;
-document.head.appendChild(styleSheet);
 
 export default DynamicSpreadsheet;
