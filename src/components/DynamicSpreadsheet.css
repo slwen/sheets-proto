@@ -11,9 +11,8 @@ body {
 
 /* Container */
 .spreadsheet-container {
-  width: fit-content;
-  max-width: 100%;
-  overflow-x: auto;
+  width: 800px;
+  height: 600px;
   margin: 40px;
   font-family: var(--font-primary);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -21,7 +20,14 @@ body {
   display: flex;
   flex-direction: column;
   border: 0.5px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.spreadsheet-wrapper {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
 }
 
 /* Table */
@@ -29,8 +35,7 @@ body {
   border-collapse: separate;
   border-spacing: 0;
   border: 0.5px solid #e0e0e0;
-  overflow: hidden;
-  border-radius: 0 0 8px 8px;
+  overflow: auto;
 }
 
 .spreadsheet-table th,
@@ -153,8 +158,12 @@ body {
   border: 0.5px solid #e0e0e0;
   background: #fff;
   padding: 0;
-  border-radius: 8px 8px 0 0;
+  border-radius: 11px 11px 0 0;
   box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  overflow: hidden;
 }
 
 .formula-label {
@@ -269,4 +278,47 @@ body {
   cursor: not-allowed;
   color: #70757a;
   background: transparent;
+}
+
+/* Create a scrollable container for the table content */
+.spreadsheet-wrapper {
+  overflow: auto;
+  position: relative;
+  border-right: 0.5px solid #e0e0e0;
+}
+
+/* Fix the corner header */
+.corner-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  background: white;
+}
+
+/* Fix the column headers */
+.spreadsheet-table th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: white;
+}
+
+/* Fix the row headers */
+.spreadsheet-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: white;
+}
+
+/* Ensure the corner header stays on top */
+.spreadsheet-table th:first-child {
+  z-index: 30;
+}
+
+/* Add some minimum dimensions to cells */
+.spreadsheet-table td {
+  min-width: 80px;
+  height: 25px;
 }

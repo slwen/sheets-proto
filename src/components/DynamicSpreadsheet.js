@@ -290,6 +290,8 @@ const FormulaBar = ({ selectedCell, cellData, onFormulaChange, onNavigate }) => 
 const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
   const [data, setData] = useState({});
   const measureRef = useRef(null);
+  const NUM_COLUMNS = 16;
+  const NUM_ROWS = 30;
 
   useEffect(() => {
     // Seed the spreadsheet with some dummy data
@@ -353,13 +355,13 @@ const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
         nextRow = Math.max(0, rowIndex - 1);
         break;
       case 'down':
-        nextRow = Math.min(19, rowIndex + 1); // Assuming 20 rows
+        nextRow = Math.min(29, rowIndex + 1); // Assuming 30 rows
         break;
       case 'left':
         nextCol = Math.max(0, colIndex - 1);
         break;
       case 'right':
-        nextCol = Math.min(9, colIndex + 1); // Assuming 10 columns
+        nextCol = Math.min(15, colIndex + 1); // Assuming 16 columns
         break;
     }
     
@@ -393,7 +395,7 @@ const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
     return (
       <tr key={rowIndex}>
         <td className={`row-header ${isActiveRow ? 'highlighted' : ''}`}>{rowIndex + 1}</td>
-        {[...Array(10)].map((_, colIndex) => renderCell(rowIndex, colIndex))}
+        {[...Array(NUM_COLUMNS)].map((_, colIndex) => renderCell(rowIndex, colIndex))}
       </tr>
     );
   };
@@ -410,27 +412,29 @@ const DynamicSpreadsheet = ({ selectedCell, editingCell, onCellClick }) => {
         }}
         onNavigate={handleNavigation}
       />
-      <table className="spreadsheet-table">
-        <thead>
-          <tr>
-            <th><SelectAllIcon width="12" height="12" /></th>
-            {[...Array(10)].map((_, index) => {
-              const isActiveCol = selectedCell && selectedCell[0] === colIndexToLetter(index);
-              return (
-                <th 
-                  key={index} 
-                  className={`col-header ${isActiveCol ? 'highlighted' : ''}`}
-                >
-                  {colIndexToLetter(index)}
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {[...Array(20)].map((_, index) => renderRow(index))}
-        </tbody>
-      </table>
+      <div className="spreadsheet-wrapper">
+        <table className="spreadsheet-table">
+          <thead>
+            <tr>
+              <th className="corner-header"><SelectAllIcon width="12" height="12" /></th>
+              {[...Array(NUM_COLUMNS)].map((_, index) => {
+                const isActiveCol = selectedCell && selectedCell[0] === colIndexToLetter(index);
+                return (
+                  <th 
+                    key={index} 
+                    className={`col-header ${isActiveCol ? 'highlighted' : ''}`}
+                  >
+                    {colIndexToLetter(index)}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(NUM_ROWS)].map((_, index) => renderRow(index))}
+          </tbody>
+        </table>
+      </div>
       <span ref={measureRef} className="measure-text" aria-hidden="true" />
     </div>
   );
